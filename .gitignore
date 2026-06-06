@@ -1,3 +1,11 @@
 .env
 .vscode
 .venv
+__pycache__/
+*.pyc
+.pytest_cache/
+AutogluonModels/
+data/raw/*.parquet
+data/processed/*.csv
+data/processed/*.json
+data/processed/*.png

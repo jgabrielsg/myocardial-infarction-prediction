@@ -1,0 +1,20 @@
+pandas>=2.2.2,<2.4.0
+pyarrow>=14.0.0,<21.0.0
+numpy>=1.25.0,<2.4.0
+scipy>=1.5.4,<1.17
+scikit-learn>=1.4.0,<1.8.0
+xgboost>=3.0.0
+autogluon.tabular>=1.5.0
+ucimlrepo>=0.0.7
+gcastle>=1.0.4
+networkx>=3.0,<4
+matplotlib>=3.7.0,<3.11
+tabpfn-client
+python-dotenv>=1.0.0
+PyYAML>=6.0
+requests>=2.32.0
+optuna>=3.6.0
+
+# PyTorch with CUDA — install separately:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
+# Or run:  powershell -File scripts/install_cuda_torch.ps1

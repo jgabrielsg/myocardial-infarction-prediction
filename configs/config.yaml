@@ -1,0 +1,90 @@
+# Myocardial Infarction Prediction — project configuration
+
+data:
+  uci_id: 579
+  test_size: 0.2
+  val_size: 0.2
+  random_state: 42
+  cache_dir: "data/raw"
+
+temporal:
+  day_1_cols: ["R_AB_1_n", "NA_R_1_n", "NOT_NA_1_n"]
+  day_2_cols: ["R_AB_2_n", "NA_R_2_n", "NOT_NA_2_n"]
+  day_3_cols: ["R_AB_3_n", "NA_R_3_n", "NOT_NA_3_n"]
+
+causal:
+  algorithm: "golem"  # golem | notears
+  output_dir: "data/processed"
+  adj_matrix_filename: "causal_adj_matrix.csv"
+  parents_filename: "causal_parents.json"
+  golem:
+    lambda_1: 0.002
+    lambda_2: 5.0
+    num_iter: 20000
+    graph_thres: 0.01
+  notears:
+    w_threshold: 0.05
+    max_iter: 50
+  min_parent_weight: 0.01
+  top_k_parents: 10
+
+thresholds:
+  min_recall_acceptable: 0.70
+  xgboost:
+    start: 0.001
+    stop: 0.50
+    step: 0.001
+  tabpfn_free:
+    start: 0.001
+    stop: 0.95
+    step: 0.001
+    metric: "f1"
+  tabpfn_causal:
+    start: 0.0001
+    stop: 0.5
+    step: 0.0001
+    metric: "f2"  # f2 | f1.5
+  comparison:
+    start: 0.01
+    stop: 0.99
+    step: 0.01
+    min_recall: 0.666
+
+xgboost:
+  depths: [3, 5, 7]
+  learning_rates: [0.01, 0.05, 0.1]
+  n_estimators_search: 500
+  n_estimators_tune: 2000
+  early_stopping_rounds: 500
+  subsample: 0.8
+  colsample_bytree: 0.8
+
+pytorch:
+  learning_rates: [0.001, 0.005]
+  dropout_rates: [0.3, 0.5]
+  tune_epochs: 25
+  max_epochs: 200
+  patience: 20
+  batch_size: 64
+  pos_weight_multiplier: 50.0
+  multiclass_loss_weight: 0.5
+  num_multiclass_classes: 8
+
+autogluon:
+  models_dir: "AutogluonModels/ClinicalChain"
+  presets: "best_quality"
+  time_limit: 60
+  excluded_model_types: ["FASTAI"]
+
+targets:
+  # All 12 targets are inferred from the dataset at runtime.
+  multiclass_suffix: "LET_IS"
+
+tuning:
+  n_trials_per_param: 8
+  output_path: "data/processed/best_hyperparams.json"
+  results_path: "results/tuning_results.json"
+
+device:
+  prefer_cuda: true
+  castle_backend: "pytorch"
