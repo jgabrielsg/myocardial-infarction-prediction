@@ -74,6 +74,83 @@ To avoid the **Accuracy Paradox** (where models achieve 95%+ accuracy by simply 
 
 ---
 
+## Applied Fixes & Environment Optimization
+
+1. **GOLEM Constraint Resolution (`ValueError: ambiguous truth value`)**
+   * **Cause:** The internal evaluation `filter(None, [adj_matrix, weight_matrix])` fails when handling multi-dimensional NumPy arrays.
+   * **Fix:** Rewrote the validation block in `src/causal/dag_generator.py` using explicit iterations combined with `is not None` and `np.shares_memory()`. The generation pipeline now runs successfully, extracting valid structural Directed Acyclic Graphs (DAGs) with 133 edges.
+
+2. **Hardware Acceleration (CUDA Enabled)**
+   * Installed **PyTorch 2.6.0+cu124** within the `.venv` environment to match deployment constraints (RTX 3050 mobile GPU paired with CUDA 13.x drivers).
+   * The GOLEM engine successfully registers and uses the hardware accelerator (`GPU is available`).
+   * Setup automation script available at: `scripts/install_cuda_torch.ps1`.
+
+3. **Hyperparameter Optimization via Sequential Tuning**
+   * Implemented a custom hyperparameter optimization module (`src/tuning/`) powered by **Optuna**.
+   * It optimizes one parameter at a time utilizing a Tree-structured Parzen Estimator (**TPE**) sampler joined with a **MedianPruner** strategy, effectively avoiding expensive grid search overheads.
+
+| Model Paradigm | Optimized Parameters | Validation Metric & Threshold Sweep Strategy |
+| :--- | :--- | :--- |
+| **XGBoost** | `lr`, `depth`, `min_child_weight`, `subsample`, `colsample`, `L1/L2` reg | Macro-$F_2$ score maximization |
+| **PyTorch MLP** | `lr`, `dropout`, `batch_size`, `weight_decay` | Macro-$F_2$ score via CUDA execution |
+| **AutoGluon** | `presets`, `time_limit` | $F_2$ score focused on probe target |
+| **TabPFN Free** | `metric`, threshold boundary window | $F_1$ / $F_{1.5}$ score boundary optimization |
+| **TabPFN Causal** | `top_k`, `metric`, threshold boundary window | $F_2$ / $F_{1.5}$ score boundary optimization |
+
+> 📊 **Tuning Results:** All optimized parameter configurations are automatically saved into `data/processed/best_hyperparams.json`.
+
+---
+
+## How to Run the Pipelines
+
+### 1. Environment Setup (Optional CUDA Activation)
+If you haven't configured PyTorch with GPU support on your local Windows environment yet, initialize the execution policy bypass to map your native CUDA drivers into the virtual environment:
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/install_cuda_torch.ps1
+
+```
+
+### 2. Executing Hyperparameter Tuning
+
+The pipeline architecture is designed to decoupling tuning from final evaluation. You must run tuning operations prior to general training loops.
+
+* **Complete Tuning Execution (All 5 Paradigms):**
+*Note: TabPFN-based models require your token declared inside a local `.env` file as `TABPFN_TOKEN`.*
+```bash
+python main.py --run-tuning
+
+```
+
+
+* **Partial Tuning Execution (Local Models Only):**
+If you want to skip token-based models and tune only XGBoost and the PyTorch MLP architecture locally:
+```bash
+python main.py --run-tuning --tuning-models xgboost pytorch
+
+```
+
+
+* **Targeted TabPFN Tuning Execution:**
+```bash
+python main.py --run-tuning --tuning-models tabpfn_free tabpfn_causal
+
+```
+
+
+
+### 3. Running the Full Pipeline (Training & Evaluation)
+
+Once `best_hyperparams.json` is populated by the tuning step, trigger the core execution loop. The execution runners will automatically read your optimized metrics, train the network stacks, and output performance reports against the 20% hold-out test split.
+
+```bash
+python main.py --run-all
+
+```
+
+**Recommended Workflow:** Always execute `--run-tuning` first to establish optimal thresholds, followed by `--run-all` to extract final validation metrics.
+
+---
+
 ## References & Frameworks
 
 * **Dataset Source:** Golovenkin, S.E., et al. *Myocardial Infarction Complications*. UCI Machine Learning Repository. [https://archive.ics.uci.edu/dataset/579/myocardial+infarction+complications](https://archive.ics.uci.edu/dataset/579/myocardial+infarction+complications)
